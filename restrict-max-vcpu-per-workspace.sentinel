@@ -1,0 +1,25 @@
+import "tfplan/v2" as tfplan
+
+param valid_actions default [
+	["no-op"],
+	["create"],
+	["update"],
+]
+
+max_workspace_cpu = 100
+
+all_resources = filter tfplan.resource_changes as _, rc {
+	rc.type is "vsphere_virtual_machine" and
+		rc.mode is "managed" and
+		rc.change.actions in valid_actions
+}
+
+vcpu_count = 0
+
+for all_resources as _, rc {
+	vcpu_count = vcpu_count + rc.change.after.num_cpus
+}
+
+main = rule {
+	vcpu_count <= max_workspace_cpu
+}
